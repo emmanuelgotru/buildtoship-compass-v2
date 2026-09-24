@@ -3,6 +3,16 @@ import { persist } from 'zustand/middleware';
 
 const simpleHash = (str) => btoa(str).split('').reverse().join('');
 
+// Migrate old localStorage key to new simple URL key
+try {
+  const oldKey = 'buildtoship-compass-v2-simple';
+  const newKey = 'build-to-ship-app';
+  if (!localStorage.getItem(newKey) && localStorage.getItem(oldKey)) {
+    localStorage.setItem(newKey, localStorage.getItem(oldKey));
+    console.log('✅ Migrated progress from old key to', newKey);
+  }
+} catch {}
+
 // Supabase helper - uses env vars or localStorage keys
 const getSupabaseClient = async () => {
   try {
@@ -214,7 +224,7 @@ export const useStore = create(
       },
     }),
     {
-      name: 'buildtoship-compass-v2-simple',
+      name: 'build-to-ship-app',
       partialize: (state) => ({
         user: state.user,
         isGuest: state.isGuest,
