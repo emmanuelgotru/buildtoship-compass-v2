@@ -66,36 +66,49 @@ Use Frontend Agent, Backend Agent, DB Agent. Create checkpoints.
 
 Start now.`,
 
-    arena: `Build me a simple app called "${idea}"
+    arena: `Build me a simple, beautiful, production-ready full-stack app called "${idea}" - make it fully working with NO bugs, amazing UI, mobile friendly, and deploy it live.
 
-I am a beginner. Make it very simple.
+I am a beginner. Build EVERYTHING yourself - I will just give you keys and tokens. Instead of taking hours, please build it in around 45 minutes to maximum 1 hour 30 minutes.
 
 Stack:
-- Frontend: React + Tailwind (pretty UI)
+- Frontend: React + Tailwind (pretty, modern, light theme #F8FAFC, white cards, responsive, glassmorphism)
 - Backend: Node.js + Express
-- Database: Supabase
-- AI: Google Gemini (only from backend, never frontend)
+- Database: Supabase (Postgres)
+- AI: Google Gemini (backend only, never frontend)
 
 Features:
-1. Sign up / log in (bcrypt)
-2. Main: ${idea} - users add, see, edit, delete their own data
-3. AI: Gemini helps users
-4. Nice UI, mobile friendly
+1. Auth: Sign up / log in with bcrypt, email + password, save session, works cross-device
+2. Main: ${idea} - users can add, see, edit, delete their own data (CRUD) - data saved in Supabase
+3. AI: Gemini helps users (summarize, generate, assist) - backend route POST /api/ai/generate
+4. UI: Beautiful, clean, light theme, amazing, works on phone
 
 ${safety}
 
-IMPORTANT FOR ARENA.AI / Z.AI:
-I will send the supabase api url, anon key, service role key, and github access token and vercel access token and render api key, and gemini api key, can you connect to supabase and deploy in vercel and render and next create a repository in github and integrate ai in the app
+CRITICAL INSTRUCTIONS FOR ARENA.AI / Z.AI - MASTER PROMPT CONTAINING EVERYTHING:
 
-After you build the basic app, ask me to send keys one by one. Then:
-- Connect Supabase using URL + anon + service_role
-- Connect Gemini using gemini api key (put in server/.env, backend only)
-- Create GitHub repo using github access token (via GitHub API) and push code
-- Deploy to Vercel using vercel access token and to Render using render api key
-- Set env vars correctly (VITE_API_BASE_URL = Render URL, CLIENT_URL = Vercel URL)
-- Give me live links
+I will send you: supabase api url, anon key, service_role key, github access token (ghp_), vercel access token (vcp_), render api key (rnd_), gemini api key (AIza).
 
-Make .env correctly and .gitignore that hides .env. Start now, then ask for keys.`,
+After you build the basic app, ASK me for keys and tokens one by one in chat. Then DO EVERYTHING YOURSELF:
+
+1. CONNECT Supabase: put keys in server/.env as SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, never in frontend
+2. CREATE Supabase tables AUTOMATICALLY yourself - DON'T ask me to run SQL manually. Create tables directly using service_role key:
+   - create extension if not exists "uuid-ossp"
+   - profiles table: id uuid primary key, email text unique, full_name text, created_at timestamp
+   - items table: id uuid default uuid_generate_v4() primary key, user_id uuid references profiles(id), title text, description text, ai_summary text, created_at timestamp
+   - Enable RLS and create policies: users see/update own profile, users CRUD own items
+   - You create tables automatically - no manual step for me!
+
+3. CONNECT Gemini: put GEMINI_API_KEY in server/.env backend only, create backend AI route, frontend calls backend not Google
+
+4. CHECK EVERYTHING FIX ANY KIND OF BUGS AND MAKE SURE EVERYTHING IS SYNCED TO DATABASE AND ALSO MAKE SURE EVERYTHING IS CONNECTED AND CHECK FOR ALL KINDS OF BUGS AND FIX THEM AND ALSO CREATE SUPABASE TABLES - verify auth works, CRUD works, data stays after refresh, AI works, RLS works, no secrets in frontend, no CORS errors, everything connected
+
+5. CREATE GitHub repo via GitHub API using my ghp_ token (POST https://api.github.com/user/repos) and push code automatically
+
+6. DEPLOY backend to Render via Render API using rnd_ key and frontend to Vercel via Vercel API using vcp_ key, set env vars: VITE_API_BASE_URL = Render URL, CLIENT_URL = Vercel URL, fix CORS
+
+7. Give me FINAL amazing fully working and no bugs full stack app: Frontend Vercel link, Backend Render link, GitHub repo link - production-ready, beautiful, no bugs
+
+Make .env correctly and .gitignore that hides .env (contains .env, node_modules, dist). Start building now, then ask for keys one by one. Build in 45min to 1h30m max, final result amazing fully working no bugs.`,
 
     default: `Build me a simple app called "${idea}"
 
@@ -155,7 +168,6 @@ export const getStepsForPathway = (pathwayId) => {
 
   const masterPrompt = getMasterPromptForPathway(pathwayId);
 
-  // CORRECTED FLOWS - verified against actual websites
   const flows = {
     replit: {
       step2: [
@@ -219,35 +231,32 @@ export const getStepsForPathway = (pathwayId) => {
     },
     arena: {
       step2: [
-        { title: 'Open Arena.ai / Z.ai', desc: 'Go to arena.ai/code (Code Arena) → Choose Agent Mode (for complex tasks) OR download ZCode from z.ai (ZCode desktop app for full control). For beginners, start with arena.ai/code in browser - no install needed!', action: 'Open arena.ai/code → Agent Mode', where: { url: 'https://arena.ai/code', steps: ['Go to arena.ai/code', 'Choose Agent Mode (built for complex tasks)', 'You see chat box + live preview + file tree'] } },
-        { title: 'Paste blueprint with keys promise', desc: 'Paste your blueprint from Step 1. IMPORTANT: This blueprint already says "I will send supabase url, anon key, service role, github token, vercel token, render key, gemini key, can you connect and deploy and create github repo". Paste it, press Enter.', action: 'Paste blueprint that says "I will send keys..." → Enter' },
-        { title: 'Watch it build + ask for keys', desc: 'Arena will plan with tool calls (create_file, edit_file) and build client/ and server/ folders. You see real-time preview. After basic build, it will say "Send me your Supabase keys" or "Send API keys". This is correct flow!', action: 'Wait for build, then it asks for keys' },
+        { title: 'Open Arena.ai / Z.ai', desc: 'Go to arena.ai/code → Choose Agent Mode (for complex tasks). For Z.ai, download ZCode from z.ai. For beginners, arena.ai/code in browser - no install!', action: 'Open arena.ai/code → Agent Mode', where: { url: 'https://arena.ai/code', steps: ['Go to arena.ai/code', 'Choose Agent Mode', 'You see chat + live preview + file tree'] } },
+        { title: 'Paste MASTER blueprint', desc: 'Paste your MASTER blueprint from Step 1 - it already contains EVERYTHING: build instructions, safety rules, time limit 45min-1h30m, and says "I will send supabase url, anon, service_role, github token, vercel token, render key, gemini key, check everything fix any kind of bugs and make sure everything is synced to database and also make sure everything is connected and check for all kinds of bugs and fix them and also create supabase tables". Paste it, press Enter.', action: 'Paste MASTER blueprint with all instructions → Enter' },
+        { title: 'Watch it build + ask for keys', desc: 'Arena will plan with tool calls (create_file, edit_file) and build client/ and server/ folders. Real-time preview. After basic build, it will say "Send me your Supabase keys" - this is correct! It will do everything itself after you give keys.', action: 'Wait for build, then it asks for keys' },
       ],
       step3: [
-        { title: 'Arena asks for Supabase keys', desc: 'When Arena says "Send Supabase URL and keys", send them ONE BY ONE in chat: First paste Project URL (https://xxx.supabase.co), then anon key (eyJ...), then service_role key (different eyJ...). Tell it: "Put them in server/.env as SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY, never in frontend!"', action: 'Paste Supabase URL → anon → service_role one by one when asked', where: { url: 'https://supabase.com/dashboard/project/_/settings/api', steps: ['Supabase → Settings → API → Copy URL, anon, service_role', 'Paste each in Arena chat when it asks'] }, keys: [{ name: 'Project URL', example: 'https://xxx.supabase.co', what: 'Get from Supabase → Settings → API → Project URL - SAFE', safe: true }, { name: 'Anon Key', example: 'eyJhbG...', what: 'Settings → API → anon public - SAFE for frontend', safe: true }, { name: 'Service Role', example: 'eyJhbG... different', what: 'Settings → API → service_role - SECRET, only server/.env!', safe: false }] },
-        { title: 'SQL for YOUR app tables', desc: 'This SQL makes generic tables profiles + items that work for ANY project (todo, notes, recipes). You already ran SQL for Compass tables (compass_users, compass_progress) which saves Compass progress across devices. For YOUR app, Arena will create tables automatically OR you can run this SQL in Supabase SQL Editor → New Query → Paste → RUN. Works for any idea, customize later.', action: 'Arena auto-creates OR you run SQL in Supabase', copyable: true, sql: sqlMigration, where: { url: 'https://supabase.com/dashboard/project/_/sql', steps: ['SQL Editor → New Query', 'Paste generic SQL → RUN', 'Works for any project - generic starter'] } },
-        { title: 'Verify connection', desc: 'After pasting keys, Arena will say "Connected to Supabase" and show it created .env file. Check file list → server/.env should have your keys (don\'t share screenshot with keys!).', action: 'Check Arena says Connected, .env created' },
+        { title: 'Arena asks for Supabase keys - it creates tables itself!', desc: 'When Arena says "Send Supabase URL and keys", send them ONE BY ONE: First Project URL (https://xxx.supabase.co), then anon key (eyJ...), then service_role key (different eyJ...). Tell it: "Create Supabase tables automatically yourself using service_role, don\'t ask me to run SQL!" - Arena will create tables automatically via SQL using service_role, no manual SQL step needed!', action: 'Paste Supabase URL → anon → service_role one by one, tell it to create tables itself', where: { url: 'https://supabase.com/dashboard/project/_/settings/api', steps: ['Supabase → Settings → API → Copy URL, anon, service_role', 'Paste each in Arena chat when it asks', 'Tell: create tables automatically yourself!'] }, keys: [{ name: 'Project URL', example: 'https://xxx.supabase.co', what: 'Supabase → Settings → API → Project URL - SAFE', safe: true }, { name: 'Anon Key', example: 'eyJhbG...', what: 'Settings → API → anon public - SAFE for frontend', safe: true }, { name: 'Service Role', example: 'eyJhbG... different', what: 'Settings → API → service_role - SECRET, only server/.env! Arena uses it to create tables automatically', safe: false }] },
+        { title: 'Arena auto-creates tables + checks everything', desc: 'Arena will now: Create tables profiles + items with RLS automatically using service_role, connect Supabase, and CHECK EVERYTHING FIX ANY KIND OF BUGS AND MAKE SURE EVERYTHING IS SYNCED TO DATABASE AND ALSO MAKE SURE EVERYTHING IS CONNECTED AND CHECK FOR ALL KINDS OF BUGS AND FIX THEM. You don\'t need to run SQL manually - Arena does it! Verify it says "Created tables" and "Connected".', action: 'Arena auto-creates tables + checks bugs + syncs DB - no manual SQL!' },
       ],
       step4: [
-        { title: 'Arena asks for Gemini key', desc: 'Next Arena will ask "Send Gemini API key". Paste your AIza... key (from aistudio.google.com/app/apikey → Create API key). Tell it: "Put in server/.env as GEMINI_API_KEY, backend only, never frontend!"', action: 'Paste Gemini AIza... key when asked', where: { url: 'https://aistudio.google.com/app/apikey', steps: ['Go to aistudio.google.com/app/apikey', 'Create API Key → Copy AIza...', 'Paste in Arena chat'] }, keys: [{ name: 'GEMINI_API_KEY', example: 'AIzaSy...', what: 'Get from aistudio.google.com/app/apikey → Create → SECRET, only server/.env!', safe: false }] },
-        { title: 'Arena integrates AI', desc: 'Arena will create backend route POST /api/ai/generate that calls Gemini from backend. Frontend will call backend, not Google directly. This is correct and safe!', action: 'Arena creates backend AI route' },
-        { title: 'Test no leak', desc: 'In Arena preview, try AI feature → Open browser F12 → Network → Should NOT see AIza key. If you see it, tell Arena: "Key leaked to frontend, move to backend only!"', action: 'Check Network has no AIza', warning: true },
+        { title: 'Arena asks for Gemini key', desc: 'Next Arena asks "Send Gemini API key". Paste AIza... key from aistudio.google.com/app/apikey → Create API key. Tell it: "Put in server/.env as GEMINI_API_KEY, backend only!"', action: 'Paste Gemini AIza... key when asked', where: { url: 'https://aistudio.google.com/app/apikey', steps: ['aistudio.google.com/app/apikey → Create → Copy AIza...', 'Paste in Arena chat'] }, keys: [{ name: 'GEMINI_API_KEY', example: 'AIzaSy...', what: 'aistudio.google.com/app/apikey → Create → SECRET, only server/.env!', safe: false }] },
+        { title: 'Arena integrates AI + checks bugs', desc: 'Arena creates backend route POST /api/ai/generate that calls Gemini from backend. Frontend calls backend not Google. Arena also checks everything is connected and fixes bugs automatically!', action: 'Arena creates backend AI route + fixes bugs' },
+        { title: 'Test no leak', desc: 'In Arena preview, try AI feature → F12 → Network → Should NOT see AIza key. If you see it, tell Arena: "Key leaked, move to backend only!"', action: 'Check Network has no AIza', warning: true },
       ],
       step5: [
-        { title: 'Arena asks for GitHub token', desc: 'Arena does NOT have "Push to GitHub button" - instead it uses your GitHub access token to create repo via API! When Arena asks "Send GitHub access token", paste your ghp_... token. Get it from github.com/settings/tokens → Generate new token classic → Check repo scope → Generate → Copy ghp_...', action: 'Paste GitHub token ghp_... when asked', where: { url: 'https://github.com/settings/tokens', steps: ['GitHub → Settings → Developer Settings → Tokens → Generate new token classic', 'Check repo scope → Generate → Copy ghp_...', 'Paste in Arena chat'] }, keys: [{ name: 'GitHub Token', example: 'ghp_...', what: 'Get from github.com/settings/tokens → Generate classic → repo scope - SECRET!', safe: false }] },
-        { title: 'Arena creates repo via API', desc: 'Using your token, Arena will call GitHub API: POST /user/repos → Creates repo my-ai-app → Pushes code automatically. You will see "Created repo https://github.com/YOU/my-ai-app" and it will push. No button click needed - AI does it with token!', action: 'Arena creates repo via GitHub API using your token' },
-        { title: 'Check no secrets on GitHub', desc: 'Go to github.com/YOU/my-ai-app → Press t → Type .env → Should be 0 results. Search AIza → 0 results. Good! If leaked, tell Arena to fix .gitignore and recreate keys.', action: 'Check GitHub has no .env or AIza', warning: true },
+        { title: 'Arena asks for GitHub token', desc: 'Arena has NO "Push to GitHub button" - it uses your GitHub access token to create repo via API! When Arena asks "Send GitHub token", paste ghp_... token from github.com/settings/tokens → Generate new token classic → repo scope → Copy ghp_...', action: 'Paste GitHub token ghp_... when asked', where: { url: 'https://github.com/settings/tokens', steps: ['GitHub → Settings → Tokens → Generate classic → repo scope → Copy ghp_...', 'Paste in Arena chat'] }, keys: [{ name: 'GitHub Token', example: 'ghp_...', what: 'github.com/settings/tokens → Generate classic → repo scope - SECRET!', safe: false }] },
+        { title: 'Arena creates repo via API', desc: 'Using token, Arena calls GitHub API POST /user/repos → Creates repo my-ai-app → Pushes code automatically. You see "Created repo https://github.com/YOU/my-ai-app". No button needed - AI does it!', action: 'Arena creates repo via GitHub API using your token' },
+        { title: 'Check no secrets', desc: 'Go to GitHub repo → Search .env → 0 results, AIza → 0. If leaked, tell Arena to fix .gitignore and recreate keys.', action: 'Check GitHub has no .env or AIza', warning: true },
       ],
       step6: [
-        { title: 'Arena asks for Vercel and Render tokens', desc: 'Next Arena asks "Send Vercel token and Render API key". Paste them one by one: Vercel token from vercel.com/account/tokens → Create → Copy vcp_... or vercel_... Render key from dashboard.render.com/u/settings → API Keys → Create → Copy rnd_...', action: 'Paste Vercel token and Render key when asked', where: { url: 'https://vercel.com/account/tokens', steps: ['Vercel → Account → Tokens → Create → Copy vcp_...', 'Render → dashboard.render.com/u/settings → API Keys → Create → Copy rnd_...', 'Paste both in Arena chat'] }, keys: [{ name: 'Vercel Token', example: 'vcp_...', what: 'vercel.com/account/tokens → Create - SECRET', safe: false }, { name: 'Render API Key', example: 'rnd_...', what: 'dashboard.render.com/u/settings → API Keys - SECRET, yes Render HAS tokens!', safe: false }] },
-        { title: 'Arena deploys via APIs', desc: 'Using tokens, Arena calls: Vercel API POST /v10/projects and /v13/deployments → Deploys frontend, and Render API POST /v1/services → Deploys backend (server folder). It sets ENV vars automatically: VITE_API_BASE_URL = Render URL, CLIENT_URL = Vercel URL. You will get live links!', action: 'Arena deploys via Vercel API + Render API using tokens' },
-        { title: 'Get live links and cross-verify', desc: 'Arena will give you: Frontend live: https://your-app.vercel.app and Backend live: https://your-app.onrender.com and GitHub: https://github.com/YOU/my-ai-app. Open Vercel URL in incognito (private) window → Try sign up → Try AI feature → Should work! If CORS error, tell Arena: "Set CLIENT_URL in Render to Vercel URL and redeploy".', action: 'Get live links from Arena → Test in incognito → Cross-verify sign up + AI works', where: { steps: ['Copy Vercel URL → Open incognito → Test sign up', 'Test AI feature → Works?', 'If CORS error → Tell Arena to set CLIENT_URL = Vercel URL in Render'] } },
-        { title: 'Done!', desc: 'You now have live app that anyone can use! Save live links for hackathon submission. If any step failed or response different, copy Arena response and paste to AI Mentor (top right Help button) - it will guide you!', action: 'Save live links, done!' },
+        { title: 'Arena asks for Vercel and Render tokens', desc: 'Next Arena asks "Send Vercel token and Render key". Paste one by one: Vercel token from vercel.com/account/tokens → Create → Copy vcp_... Render key from dashboard.render.com/u/settings → API Keys → Create → Copy rnd_...', action: 'Paste Vercel token and Render key when asked', where: { url: 'https://vercel.com/account/tokens', steps: ['Vercel → Account → Tokens → Create → Copy vcp_...', 'Render → dashboard.render.com/u/settings → API Keys → Create → Copy rnd_...', 'Paste both in Arena chat'] }, keys: [{ name: 'Vercel Token', example: 'vcp_...', what: 'vercel.com/account/tokens → Create - SECRET', safe: false }, { name: 'Render API Key', example: 'rnd_...', what: 'dashboard.render.com/u/settings → API Keys - SECRET, yes Render HAS tokens!', safe: false }] },
+        { title: 'Arena deploys via APIs + final bug check', desc: 'Using tokens, Arena calls Vercel API and Render API to deploy. It sets ENV vars: VITE_API_BASE_URL = Render URL, CLIENT_URL = Vercel URL. Then it does final CHECK: "check everything fix any kind of bugs and make sure everything is synced to database and also make sure everything is connected and check for all kinds of bugs and fix them". Fixes CORS, RLS, env, everything! Takes around 45min-1h30m total.', action: 'Arena deploys via APIs + final bug fix check - 45min to 1h30m total' },
+        { title: 'Get FINAL amazing fully working no bugs app!', desc: 'Arena gives you: Frontend live: https://your-app.vercel.app (amazing, fully working, no bugs), Backend: https://your-app.onrender.com, GitHub: https://github.com/YOU/my-ai-app. Open Vercel URL in incognito → Test sign up → Test CRUD → Test AI → All works! Data synced to database! No bugs! If any issue, copy Arena response to Mentor (top right Help) - it guides you!', action: 'Get FINAL live links → Test incognito → Amazing fully working no bugs app!', where: { steps: ['Copy Vercel URL → Open incognito → Test sign up', 'Test CRUD → Data stays after refresh? → Synced to DB?', 'Test AI → Works? → No bugs?', 'Done! Save links for hackathon'] } },
       ],
     },
   };
 
-  // Use same for antigravity2 as antigravity
   flows.antigravity2 = flows.antigravity;
 
   return [
@@ -289,9 +298,9 @@ export const getStepsForPathway = (pathwayId) => {
       color: 'from-emerald-400 to-teal-500',
       estimatedTime: '8 min',
       kidExplanation: 'App forgets when you refresh! Need cloud notebook called Supabase that never forgets. Free to make.',
-      oneBigAction: 'Create Supabase project and send keys to AI',
+      oneBigAction: pathwayId === 'arena' ? 'Create Supabase project and send keys to AI - it creates tables itself!' : 'Create Supabase project and run SQL',
       microSteps: flows[pathwayId]?.step3 || flows.arena.step3,
-      content: { type: 'database', sql: sqlMigration },
+      content: { type: 'database', sql: pathwayId === 'arena' ? '-- Arena creates tables automatically using service_role - no manual SQL needed! If you want to check, tables are: profiles (id, email, name) and items (id, user_id, title, description, ai_summary). Arena will create them via API.' : sqlMigration },
       mentorContext: 'Kid on Step 3 Supabase.',
     },
     {
@@ -327,8 +336,8 @@ export const getStepsForPathway = (pathwayId) => {
       icon: '🚀',
       color: 'from-cyan-400 to-indigo-500',
       estimatedTime: '10 min',
-      kidExplanation: 'App only works on YOUR computer. Put on internet so anyone can use! For Arena, AI uses your Vercel and Render tokens to deploy via APIs and gives live links.',
-      oneBigAction: pathwayId === 'arena' ? 'Send Vercel and Render tokens to AI, get live links' : 'Deploy brain to Render first, then face to Vercel',
+      kidExplanation: 'App only works on YOUR computer. Put on internet so anyone can use! For Arena, AI uses your Vercel and Render tokens to deploy via APIs and gives live links - final amazing fully working no bugs app in 45min-1h30m!',
+      oneBigAction: pathwayId === 'arena' ? 'Send Vercel and Render tokens to AI, get FINAL live link - amazing no bugs!' : 'Deploy brain to Render first, then face to Vercel',
       microSteps: flows[pathwayId]?.step6 || flows.arena.step6,
       content: { type: 'deploy' },
       mentorContext: 'Kid on Step 6 deployment.',
@@ -339,12 +348,12 @@ export const getStepsForPathway = (pathwayId) => {
 export const checklistItems = [
   { id: 1, text: 'I can make account and log in', desc: 'Sign up, log out, log in works?', critical: true },
   { id: 2, text: 'Passwords hidden safely', desc: 'Uses bcrypt.hash()', critical: true },
-  { id: 3, text: 'Data stays after refresh', desc: 'Add, refresh, still there?', critical: true },
+  { id: 3, text: 'Data stays after refresh', desc: 'Add, refresh, still there? Synced to DB?', critical: true },
   { id: 4, text: 'Only I see my data', desc: 'Supabase RLS on', critical: true },
   { id: 5, text: 'AI brain from backend only', desc: 'Frontend has 0 GEMINI results', critical: true },
   { id: 6, text: 'No secret keys in frontend', desc: 'F12 → Search AIza → 0', critical: true },
   { id: 7, text: 'No secrets on GitHub', desc: 'GitHub search .env and AIza → 0', critical: true },
-  { id: 8, text: 'Live link works for friends', desc: 'Vercel URL in private window works', critical: true },
-  { id: 9, text: 'Live AI works', desc: 'On live site AI feature works', critical: true },
-  { id: 10, text: 'Video 2 min', desc: 'Record: sign up, main, AI', critical: true },
+  { id: 8, text: 'Live link works for friends', desc: 'Vercel URL in private window works - fully working no bugs', critical: true },
+  { id: 9, text: 'Live AI works', desc: 'On live site AI feature works, everything connected', critical: true },
+  { id: 10, text: 'Video 2 min', desc: 'Record: sign up, main, AI - show amazing app', critical: true },
 ];
