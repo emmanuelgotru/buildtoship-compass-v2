@@ -36,10 +36,27 @@ export const useStore = create(
 
       signup: async (email, password, name) => {
         const { usersDB } = get();
+        const supabase = await getSupabaseClient();
+        
+        // Check local DB first
         if (usersDB[email]) {
           set({ authError: 'Email already registered. Try login.' });
           return false;
         }
+
+        // Check Supabase cloud for existing account (cross-device)
+        if (supabase) {
+          try {
+            const { data } = await supabase.from('compass_users').select('email, progress').eq('email', email).maybeSingle();
+            if (data) {
+              set({ authError: 'Email already registered in cloud. Try login on any device.' });
+              return false;
+            }
+          } catch (e) {
+            console.log('Supabase check failed, continuing with local signup', e.message);
+          }
+        }
+
         const newUser = {
           email,
           name: name || email.split('@')[0],
@@ -54,37 +71,118 @@ export const useStore = create(
           authError: null,
         });
 
-        // Try Supabase cloud save
-        try {
-          const supabase = await getSupabaseClient();
-          if (supabase) {
-            await supabase.from('compass_users').upsert({ email: newUser.email, name: newUser.name, progress: {} }, { onConflict: 'email' });
-            console.log('✅ Supabase: user saved to cloud');
+        // Save to Supabase cloud - store passwordHash in progress JSON (since table has no password_hash column)
+        if (supabase) {
+          try {
+            const { error } = await supabase.from('compass_users').upsert(
+              { email: newUser.email, name: newUser.name, progress: { passwordHash: newUser.passwordHash } }, 
+              { onConflict: 'email' }
+            );
+            if (error) throw error;
+            console.log('✅ Supabase: user saved to cloud with passwordHash');
+          } catch (e) {
+            console.log('Supabase save failed:', e.message);
           }
-        } catch (e) {
-          console.log('Supabase save failed (table may not exist yet):', e.message);
         }
         return true;
       },
 
       login: async (email, password) => {
         const { usersDB } = get();
-        const existing = usersDB[email];
-        if (!existing) {
-          set({ authError: 'No account found. Please sign up.' });
-          return false;
-        }
-        if (existing.passwordHash !== simpleHash(password)) {
-          set({ authError: 'Wrong password.' });
-          return false;
+        const inputHash = simpleHash(password);
+        const supabase = await getSupabaseClient();
+
+        // 1. Check local DB first (fast path)
+        const localUser = usersDB[email];
+        if (localUser) {
+          if (localUser.passwordHash !== inputHash) {
+            set({ authError: 'Wrong password.' });
+            return false;
+          }
+          // Local password OK, now load cloud progress
+          await get()._loadProgress(email, supabase);
+          set({ 
+            user: { email: localUser.email, name: localUser.name }, 
+            isGuest: false,
+            authError: null,
+          });
+          return true;
         }
 
-        // Try load from Supabase first, then local
+        // 2. Not in local DB, try Supabase cloud (cross-device login)
+        if (supabase) {
+          try {
+            const { data: cloudUser, error } = await supabase.from('compass_users').select('*').eq('email', email).maybeSingle();
+            if (error) throw error;
+            
+            if (cloudUser) {
+              const storedHash = cloudUser.progress?.passwordHash;
+              
+              // Migration: old accounts without passwordHash - allow login and set hash
+              if (!storedHash) {
+                console.log('⚠️ Old account without passwordHash, setting new hash for', email);
+                // Save new hash to cloud
+                await supabase.from('compass_users').update({ progress: { passwordHash: inputHash } }).eq('email', email);
+                // Create local entry
+                const migratedUser = {
+                  email: cloudUser.email,
+                  name: cloudUser.name,
+                  passwordHash: inputHash,
+                  createdAt: cloudUser.created_at || new Date().toISOString(),
+                };
+                const updatedDB = { ...get().usersDB, [email]: migratedUser };
+                set({ usersDB: updatedDB });
+                await get()._loadProgress(email, supabase);
+                set({
+                  user: { email: cloudUser.email, name: cloudUser.name },
+                  isGuest: false,
+                  authError: null,
+                });
+                return true;
+              }
+
+              // Normal case: verify hash
+              if (storedHash !== inputHash) {
+                set({ authError: 'Wrong password.' });
+                return false;
+              }
+
+              // Password OK, create local entry for future fast login
+              const cloudLocalUser = {
+                email: cloudUser.email,
+                name: cloudUser.name,
+                passwordHash: storedHash,
+                createdAt: cloudUser.created_at || new Date().toISOString(),
+              };
+              const updatedDB = { ...get().usersDB, [email]: cloudLocalUser };
+              set({ usersDB: updatedDB });
+              
+              await get()._loadProgress(email, supabase);
+              set({
+                user: { email: cloudUser.email, name: cloudUser.name },
+                isGuest: false,
+                authError: null,
+              });
+              console.log('✅ Cross-device login success from Supabase');
+              return true;
+            }
+          } catch (e) {
+            console.log('Supabase cloud login failed:', e.message);
+          }
+        }
+
+        // 3. Not found anywhere
+        set({ authError: 'No account found. Please sign up.' });
+        return false;
+      },
+
+      _loadProgress: async (email, supabaseClient) => {
+        const supabase = supabaseClient || await getSupabaseClient();
         let loadedFromCloud = false;
-        try {
-          const supabase = await getSupabaseClient();
-          if (supabase) {
-            const { data, error } = await supabase.from('compass_progress').select('*').eq('user_id', email).single();
+        
+        if (supabase) {
+          try {
+            const { data, error } = await supabase.from('compass_progress').select('*').eq('user_id', email).maybeSingle();
             if (data && !error) {
               set({
                 selectedPathway: data.pathway || null,
@@ -95,9 +193,9 @@ export const useStore = create(
               loadedFromCloud = true;
               console.log('✅ Loaded progress from Supabase cloud');
             }
+          } catch (e) {
+            console.log('Supabase progress load failed:', e.message);
           }
-        } catch (e) {
-          console.log('Supabase load failed, fallback to local:', e.message);
         }
 
         if (!loadedFromCloud) {
@@ -114,13 +212,6 @@ export const useStore = create(
             }
           } catch {}
         }
-        
-        set({ 
-          user: { email: existing.email, name: existing.name }, 
-          isGuest: false,
-          authError: null,
-        });
-        return true;
       },
 
       setGuest: () => set({ 
@@ -183,7 +274,7 @@ export const useStore = create(
           try {
             const supabase = await getSupabaseClient();
             if (supabase) {
-              await supabase.from('compass_progress').upsert({
+              const { error } = await supabase.from('compass_progress').upsert({
                 user_id: user.email,
                 email: user.email,
                 pathway: selectedPathway,
@@ -192,10 +283,11 @@ export const useStore = create(
                 checklist: checklist,
                 updated_at: new Date().toISOString()
               }, { onConflict: 'user_id' });
+              if (error) throw error;
               console.log('✅ Progress synced to Supabase');
             }
           } catch (e) {
-            console.log('Supabase sync failed (table may not exist):', e.message);
+            console.log('Supabase sync failed:', e.message);
           }
         }
       },
